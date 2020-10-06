@@ -1,0 +1,12 @@
+{
+  "name": "create-ng-app",
+  "version": "0.0.1",
+  "description": "",
+  "bin": "bin/create.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cowsay": "^1.4.0"
+  }
+}
