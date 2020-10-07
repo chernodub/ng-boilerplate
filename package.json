@@ -7,6 +7,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cowsay": "^1.4.0"
+    "replace-in-files": "^3.0.0"
   }
 }
