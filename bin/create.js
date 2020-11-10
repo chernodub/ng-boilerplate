@@ -11,6 +11,7 @@ const path = require('path');
  * @property {string} name The name of a project.
  * @property {string} prefix Prefix for Angular components.
  * @property {string} template Template SSH URL.
+ * @property {boolean} verbose Whether the script should explain its actions.
  */
 
 /** @type {Partial<ProjectParams>} */
@@ -19,7 +20,12 @@ const DEFAULT_ARGUMENTS = {
 };
 
 // Args
-const { name, prefix, template: templateSshUrl } = askForProjectParams(
+const { 
+  name,
+  prefix,
+  template: templateSshUrl,
+  verbose,
+} = askForProjectParams(
   DEFAULT_ARGUMENTS,
 );
 
@@ -27,25 +33,19 @@ const { name, prefix, template: templateSshUrl } = askForProjectParams(
 const CURRENT_DIR = process.cwd();
 const PROJECT_DIR = path.join(CURRENT_DIR, name);
 
-try {
-  fetchTemplate(PROJECT_DIR, templateSshUrl);
-  checkTemplateValidity(PROJECT_DIR);
-  replaceBoilerplateCode(name, prefix);
-  configureTsLint(PROJECT_DIR);
-  installProjectDeps();
-  prepareGit(PROJECT_DIR);
-} catch (error) {
-  console.error(error);
-  process.exit(1);
-}
-
-/**
- * Install npm dependencies.
- */
-function installScriptDeps() {
-  console.log(`cd ${__dirname} && npm ci && cd ${process.cwd()}`);
-  cp.execSync(`cd ${__dirname} && npm ci && cd ${process.cwd()}`);
-}
+(async () => {
+  try {
+    fetchTemplate(PROJECT_DIR, templateSshUrl, verbose);
+    checkTemplateValidity(PROJECT_DIR);
+    await replaceBoilerplateCode(name, prefix, verbose);
+    configureTsLint(PROJECT_DIR, verbose);
+    installProjectDeps(verbose);
+    prepareGit(PROJECT_DIR);
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+})();
 
 /**
  * Ask user for project params
@@ -58,7 +58,7 @@ function askForProjectParams(defaultOptions) {
     .version('0.1.0')
     .requiredOption('-n, --name <name>', 'Name of the project')
     .requiredOption('-p, --prefix <prefix>', "Prefix for Angular's components")
-    .option('--no-linter', "Don't configure linter")
+    .option('-v, --verbose', "Whether the script should explain its actions")
     .option(
       '-t, --template <repository_url>',
       'Custom repository url',
@@ -135,27 +135,28 @@ function configureTsLint(directory, verbose = false) {
  * @param {string} prefix Angular components prefix.
  * @param {boolean} verbose Whether the message should be displayed.
  */
-function replaceBoilerplateCode(name, prefix, verbose = false) {
+async function replaceBoilerplateCode(name, prefix, verbose = false) {
   // @ts-ignore replace-in-files typing
   const replaceInFiles = require('replace-in-files');
 
   if (verbose) {
     console.log('Preparing the boilerplate for you...');
   }
+
   // Replace app name
-  replaceInFiles({
+  await replaceInFiles({
     files: [`${name}/*`, `${name}/**/*`],
     from: /APP_NAME/g,
     to: name,
     ignore: ['**/node_modules/**'],
-  }).then(() =>
-    replaceInFiles({
-      files: [`${name}/*`, `${name}/**/*`],
-      from: /APP_PREFIX/g,
-      to: prefix,
-      ignore: ['**/node_modules/**'],
-    }),
-  );
+  });
+
+  await replaceInFiles({
+    files: [`${name}/*`, `${name}/**/*`],
+    from: /APP_PREFIX/g,
+    to: prefix,
+    ignore: ['**/node_modules/**'],
+  });
 }
 
 /**
@@ -164,8 +165,10 @@ function replaceBoilerplateCode(name, prefix, verbose = false) {
  * @param {string} commitMessage Message for initial commit.
  */
 function prepareGit(dir, commitMessage = 'initial commit') {
+  // TODO (Chernodub): `rmdirSync` is experimental, replace with `rimraf` package if there's problems
+  fs.rmdirSync(path.join(dir, '.git'), { recursive: true });
   cp.execSync(
-    `cd ${dir} && rm -rf .git && git init && git add . && git commit -m "${commitMessage}"`,
+    `cd ${dir} && git init && git add . && git commit -m "${commitMessage}"`,
   );
 }
 
