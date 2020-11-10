@@ -43,6 +43,7 @@ try {
  * Install npm dependencies.
  */
 function installScriptDeps() {
+  console.log(`cd ${__dirname} && npm ci && cd ${process.cwd()}`);
   cp.execSync(`cd ${__dirname} && npm ci && cd ${process.cwd()}`);
 }
 
