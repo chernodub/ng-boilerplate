@@ -126,7 +126,7 @@ function configureTsLint(directory, verbose = false) {
     ...JSON.parse(fs.readFileSync(lintConfigPath).toString()),
   };
   cp.execSync(`cd ${directory} && npm i @saritasa/tslint-config-angular`);
-  fs.writeFileSync(lintConfigPath, JSON.stringify(modifiedLintConfig));
+  fs.writeFileSync(lintConfigPath, JSON.stringify(modifiedLintConfig, null, '  '));
 }
 
 /**
